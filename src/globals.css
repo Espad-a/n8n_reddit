@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Google Font - Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -49,6 +52,9 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --accent-brand: 243 75% 59%; /* HSL for #4F46E5 */
+    --accent-brand-foreground: 0 0% 100%; /* White text on accent-brand */
   }
 
   .dark {
@@ -87,6 +93,9 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --accent-brand: 243 75% 59%; /* HSL for #4F46E5 */
+    --accent-brand-foreground: 0 0% 100%; /* White text on accent-brand */
   }
 }
 
@@ -96,7 +105,13 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans leading-relaxed;
+    @apply bg-background text-foreground font-sans leading-relaxed; /* Apply font-sans here */
+  }
+
+  /* Global style for disabled buttons */
+  button:disabled,
+  a.button:disabled {
+    @apply opacity-60 cursor-not-allowed bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400;
   }
 }
 
@@ -112,7 +127,7 @@
   .prose h4,
   .prose h5,
   .prose h6 {
-    @apply font-bold text-primary dark:text-primary-foreground;
+    @apply font-bold text-primary dark:text-foreground; /* Changed to dark:text-foreground */
   }
 
   .prose h1 {
@@ -142,7 +157,7 @@
 
   .prose ul li::before {
     content: "✓"; /* Checkmark icon */
-    @apply absolute left-0 top-0 text-accent-brand dark:text-accent-brand-foreground font-bold;
+    @apply absolute left-0 top-0 text-accent-brand dark:text-accent-brand font-bold; /* Changed to dark:text-accent-brand */
   }
 
   .prose ol {
@@ -157,7 +172,7 @@
 
   .prose ol li::before {
     content: counter(roadmap-step);
-    @apply absolute -left-4 top-0 flex items-center justify-center w-8 h-8 rounded-full bg-accent-brand text-white dark:bg-accent-brand-foreground dark:text-accent-brand font-bold text-sm;
+    @apply absolute -left-4 top-0 flex items-center justify-center w-8 h-8 rounded-full bg-accent-brand text-white dark:bg-accent-brand dark:text-white font-bold text-sm; /* Changed dark mode colors */
   }
 
   .prose a {
@@ -165,7 +180,7 @@
   }
 
   .prose strong {
-    @apply font-semibold text-primary dark:text-primary-foreground;
+    @apply font-semibold text-primary dark:text-foreground; /* Changed to dark:text-foreground */
   }
 
   /* Subtle animations and hover effects */
@@ -211,22 +226,26 @@
   }
 
   /* Different background colors based on depth */
+  /* Light Mode */
   .comment[style*="margin-left: 0px"] {
     background: white !important;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
   }
 
-  .comment[style*="margin-left: 24px"] { /* Adjusted from 20px to 24px for consistency with JS */
-    background: #f9fafb !important;
+  .comment[style*="margin-left: 24px"] {
+    background: #f0f8ff !important; /* AliceBlue */
+    border: 1px solid #d0e8ff;
   }
 
-  .comment[style*="margin-left: 48px"] { /* Adjusted from 40px to 48px */
-    background: #f3f4f6 !important;
+  .comment[style*="margin-left: 48px"] {
+    background: #e6f2ff !important; /* Lighter Blue */
+    border: 1px solid #b3d9ff;
   }
 
-  .comment[style*="margin-left: 72px"] { /* Adjusted from 60px to 72px */
-    background: #e5e7eb !important;
+  .comment[style*="margin-left: 72px"] {
+    background: #d9ecff !important; /* Even Lighter Blue */
+    border: 1px solid #80bfff;
   }
 
   /* Dark mode adjustments for comment backgrounds */
@@ -236,15 +255,18 @@
   }
 
   .dark .comment[style*="margin-left: 24px"] {
-    background: hsl(217.2 32.6% 17.5%) !important; /* var(--secondary) or similar dark muted */
+    background: hsl(217.2 32.6% 17.5%) !important; /* Darker secondary */
+    border-color: hsl(217.2 32.6% 20%);
   }
 
   .dark .comment[style*="margin-left: 48px"] {
-    background: hsl(217.2 32.6% 15%) !important; /* Slightly darker */
+    background: hsl(217.2 32.6% 15%) !important; /* Even darker */
+    border-color: hsl(217.2 32.6% 18%);
   }
 
   .dark .comment[style*="margin-left: 72px"] {
-    background: hsl(217.2 32.6% 12%) !important; /* Even darker */
+    background: hsl(217.2 32.6% 12%) !important; /* Deepest dark */
+    border-color: hsl(217.2 32.6% 15%);
   }
 
   .comment:hover {

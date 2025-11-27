@@ -12,6 +12,7 @@ const MobileNav: React.FC = () => {
 
   const navLinks = [
     { name: "Home", path: "/" },
+    { name: "Saved Posts", path: "/saved-posts" }, // New link
     { name: "Roadmap", path: "/roadmap" },
   ];
 
@@ -34,10 +35,10 @@ const MobileNav: React.FC = () => {
               to={link.path}
               className={({ isActive }) =>
                 cn(
-                  "text-lg font-medium transition-colors hover:text-primary",
+                  "text-lg font-medium transition-colors hover:text-blue-500 dark:hover:text-blue-300",
                   isActive
-                    ? "text-primary dark:text-primary-foreground"
-                    : "text-muted-foreground"
+                    ? "text-blue-600 dark:text-blue-400" // Changed for better active contrast
+                    : "text-gray-600 dark:text-gray-300"
                 )
               }
               onClick={() => setIsOpen(false)} // Close sheet on navigation

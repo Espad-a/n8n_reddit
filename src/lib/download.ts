@@ -1,4 +1,4 @@
-export function downloadHtmlFile(data: any[], filename: string) {
+export function downloadHtmlFile(data: any[], allFetchedComments: Record<string, any | null>, filename: string) {
   const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
@@ -6,8 +6,9 @@ export function downloadHtmlFile(data: any[], filename: string) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; background-color: #f9f9f9; }
+    body { font-family: -apple-system, BlinkMacMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; background-color: #f9f9f9; }
     h1 { color: #1a1a1b; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 30px; }
+    h2 { color: #1a1a1b; margin-top: 25px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
     .post { border: 1px solid #e1e1e1; background-color: #fff; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .post-title { font-size: 1.8em; margin-bottom: 10px; color: #1a1a1b; line-height: 1.3; }
     .subreddit { color: #ff4500; font-weight: bold; font-size: 0.9em; margin-bottom: 15px; display: block; }
@@ -17,20 +18,48 @@ export function downloadHtmlFile(data: any[], filename: string) {
     .post-link { display: inline-block; margin-top: 15px; color: #007bff; text-decoration: none; font-weight: 500; }
     .post-link:hover { text-decoration: underline; }
     .no-posts { text-align: center; color: #777; font-size: 1.2em; margin-top: 50px; }
+    .comments-section { margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ddd; }
+    .comment-thread { margin-bottom: 15px; border-left: 2px solid #e1e1e1; padding-left: 10px; }
+    .comment-item { background-color: #fefefe; border: 1px solid #eee; padding: 10px; margin-bottom: 8px; border-radius: 4px; }
+    .comment-item p { margin: 0 0 5px 0; }
+    .comment-item strong { color: #333; }
+    .comment-item a { font-size: 0.9em; }
   </style>
 </head>
 <body>
   <h1>My Saved Reddit Posts (${data.length})</h1>
   ${data.length === 0 ? `<p class="no-posts">No liked posts to display.</p>` : ''}
-  ${data.map((post: any) => `
-    <div class="post">
-      <div class="post-title">${post.title}</div>
-      <span class="subreddit">r/${post.subreddit}</span>
-      ${post.aiSummary ? `<div class="summary"><strong>AI Summary:</strong> ${post.aiSummary}</div>` : ''}
-      <div class="content">${post.selftext}</div>
-      ${post.url ? `<p><a href="${post.url}" target="_blank" class="post-link">View on Reddit</a></p>` : ''}
-    </div>
-  `).join('')}
+  ${data.map((post: any) => {
+    const commentsData = allFetchedComments[post.id];
+    const hasComments = commentsData && commentsData.individualThreads && commentsData.individualThreads.length > 0;
+
+    return `
+      <div class="post">
+        <div class="post-title">${post.title}</div>
+        <span class="subreddit">r/${post.subreddit}</span>
+        ${post.aiSummary ? `<div class="summary"><strong>AI Summary:</strong> ${post.aiSummary}</div>` : ''}
+        <div class="content">${post.selftext}</div>
+        ${post.url ? `<p><a href="${post.url}" target="_blank" class="post-link">View on Reddit</a></p>` : ''}
+
+        ${hasComments ? `
+          <div class="comments-section">
+            <h2>Comments (${commentsData.combinedSummary.totalComments})</h2>
+            ${commentsData.individualThreads.map((thread: any) => `
+              <div class="comment-thread">
+                ${thread.comments.map((comment: any) => `
+                  <div class="comment-item" style="margin-left: ${comment.depth * 20}px;">
+                    <p><strong>${comment.author}</strong> (${comment.score} points) - ${comment.created}</p>
+                    <p>${comment.body}</p>
+                    ${comment.permalink ? `<a href="${comment.permalink}" target="_blank">View Comment on Reddit</a></p>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('')}
 </body>
 </html>`;
   

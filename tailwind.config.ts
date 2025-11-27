@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { fontFamily } from "tailwindcss/defaultTheme"; // Import fontFamily
 
 export default {
   darkMode: ["class"],
@@ -45,8 +46,8 @@ export default {
           foreground: "hsl(var(--accent-foreground))",
         },
         "accent-brand": {
-          DEFAULT: "#4F46E5", // User specified hex
-          foreground: "hsl(var(--primary-foreground))", // Using existing primary-foreground for contrast
+          DEFAULT: "hsl(var(--accent-brand))", // Now references the CSS variable
+          foreground: "hsl(var(--accent-brand-foreground))", // Using a dedicated variable for contrast
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -93,6 +94,9 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      fontFamily: {
+        sans: ["Inter", ...fontFamily.sans], // Use Inter as the primary sans-serif font
       },
     },
   },
