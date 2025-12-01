@@ -67,6 +67,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Adding custom gray shades for comments
+        gray: {
+          750: "hsl(220 13% 18%)", // Custom shade between 700 and 800
+          850: "hsl(220 13% 12%)", // Custom shade between 800 and 900
+          950: "hsl(222.2 84% 4.9%)", // Even darker for deepest comments, similar to background
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

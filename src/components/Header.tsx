@@ -23,6 +23,12 @@ const Header: React.FC = () => {
             <Link to="/saved-posts" className="transition-colors hover:text-primary"> {/* New link */}
               Saved Posts
             </Link>
+            <Link to="/saved-roadmaps" className="transition-colors hover:text-primary"> {/* New link */}
+              Saved Roadmaps
+            </Link>
+            <Link to="/saved-comments" className="transition-colors hover:text-primary"> {/* New link */}
+              Saved Comments
+            </Link>
             <Link to="/roadmap" className="transition-colors hover:text-primary">
               Roadmap
             </Link>

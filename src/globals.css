@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* Import Google Font - Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -201,7 +201,7 @@
 
   .comment {
     position: relative;
-    border-left: 2px solid #e5e7eb; /* Light gray border */
+    border-left: 2px solid transparent; /* Start with transparent, will be overridden by depth */
     padding-left: 16px;
     margin-left: 0 !important; /* Override inline margin for base indentation */
     transition: all 0.2s ease;
@@ -210,92 +210,91 @@
     margin-bottom: 8px;
   }
 
-  .comment:before {
-    content: "";
-    position: absolute;
-    left: -2px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: linear-gradient(to bottom, transparent 0%, #e5e7eb 10%, #e5e7eb 90%, transparent 100%);
-  }
-
-  /* Remove border for last comment in thread */
-  .comment:last-child:before {
-    bottom: 50%;
-  }
-
-  /* Different background colors based on depth */
-  /* Light Mode */
+  /* Depth-based styling for comments */
+  /* Level 0 (top-level) */
   .comment[style*="margin-left: 0px"] {
-    background: white !important;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    @apply bg-card border border-border shadow-sm;
   }
-
-  .comment[style*="margin-left: 24px"] {
-    background: #f0f8ff !important; /* AliceBlue */
-    border: 1px solid #d0e8ff;
-  }
-
-  .comment[style*="margin-left: 48px"] {
-    background: #e6f2ff !important; /* Lighter Blue */
-    border: 1px solid #b3d9ff;
-  }
-
-  .comment[style*="margin-left: 72px"] {
-    background: #d9ecff !important; /* Even Lighter Blue */
-    border: 1px solid #80bfff;
-  }
-
-  /* Dark mode adjustments for comment backgrounds */
   .dark .comment[style*="margin-left: 0px"] {
-    background: hsl(222.2 84% 4.9%) !important; /* var(--background) */
-    border-color: hsl(217.2 32.6% 17.5%); /* var(--border) */
+    @apply bg-card border border-border;
   }
 
+  /* Level 1 */
+  .comment[style*="margin-left: 24px"] {
+    @apply bg-gray-50 border border-gray-200;
+  }
   .dark .comment[style*="margin-left: 24px"] {
-    background: hsl(217.2 32.6% 17.5%) !important; /* Darker secondary */
-    border-color: hsl(217.2 32.6% 20%);
+    @apply bg-gray-800 border border-gray-700;
   }
 
+  /* Level 2 */
+  .comment[style*="margin-left: 48px"] {
+    @apply bg-gray-100 border border-gray-300;
+  }
   .dark .comment[style*="margin-left: 48px"] {
-    background: hsl(217.2 32.6% 15%) !important; /* Even darker */
-    border-color: hsl(217.2 32.6% 18%);
+    @apply bg-gray-850 border border-gray-750; /* Custom dark shade */
   }
 
+  /* Level 3 */
+  .comment[style*="margin-left: 72px"] {
+    @apply bg-gray-200 border border-gray-400;
+  }
   .dark .comment[style*="margin-left: 72px"] {
-    background: hsl(217.2 32.6% 12%) !important; /* Deepest dark */
-    border-color: hsl(217.2 32.6% 15%);
+    @apply bg-gray-900 border border-gray-800;
+  }
+
+  /* Level 4 and deeper */
+  .comment[style*="margin-left: 96px"],
+  .comment[style*="margin-left: 120px"],
+  .comment[style*="margin-left: 144px"], /* Added for even deeper nesting */
+  .comment[style*="margin-left: 168px"] { /* Added for even deeper nesting */
+    @apply bg-gray-200 border border-gray-400; /* Same as level 3 for simplicity */
+  }
+  .dark .comment[style*="margin-left: 96px"],
+  .dark .comment[style*="margin-left: 120px"],
+  .dark .comment[style*="margin-left: 144px"],
+  .dark .comment[style*="margin-left: 168px"] {
+    @apply bg-gray-950 border border-gray-900; /* Even darker for deepest levels */
   }
 
   .comment:hover {
-    transform: translateX(4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    @apply shadow-md;
   }
 
-  /* Highlight top-level comments */
   .comment-header {
-    border-bottom: 1px solid #f1f1f1;
-    padding-bottom: 8px;
-    margin-bottom: 8px;
+    @apply border-b border-gray-100 dark:border-gray-700 pb-2 mb-2;
   }
 
-  .dark .comment-header {
-    border-bottom-color: hsl(217.2 32.6% 20%);
+  .comment-footer {
+    @apply flex justify-end text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700;
   }
 
   /* Mobile adjustments */
   @media (max-width: 768px) {
     .comment {
-      margin-left: 0 !important;
+      margin-left: 0 !important; /* Remove indentation on small screens */
       padding-left: 12px;
     }
     
     .comment-header {
-      flex-direction: column;
+      /* flex-direction: column; REMOVED to keep header elements in a row on mobile */
       align-items: flex-start;
       gap: 4px;
+    }
+
+    /* Adjust comment depth styling for smaller screens */
+    .comment[style*="margin-left: 24px"],
+    .comment[style*="margin-left: 48px"],
+    .comment[style*="margin-left: 72px"],
+    .comment[style*="margin-left: 96px"],
+    .comment[style*="margin-left: 120px"],
+    .comment[style*="margin-left: 144px"],
+    .comment[style*="margin-left: 168px"] {
+      margin-left: 12px !important; /* Smaller indentation for nested comments */
+    }
+
+    .comment .group-hover\\:opacity-100 {
+      opacity: 1; /* Always show icons on mobile for easier interaction */
     }
   }
 }

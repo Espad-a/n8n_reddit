@@ -13,9 +13,11 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { showLoading, showSuccess, showError, dismissToast } from "@/utils/toast";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { ArrowLeft, CheckCircle, XCircle, DollarSign, Clock, Zap, Lightbulb, Wrench, BookOpen, ExternalLink } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, DollarSign, Clock, Zap, Lightbulb, Wrench, BookOpen, ExternalLink, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAiUsage } from "@/context/AiUsageContext";
+import LoadingGame from "@/components/LoadingGame"; // Import LoadingGame
+import { supabase } from "@/lib/supabase"; // Import supabase
 
 interface Post {
   id: string;
@@ -95,6 +97,7 @@ const RoadmapPage: React.FC<RoadmapPageProps> = ({
   const navigate = useNavigate();
   const { recordRequest, incrementRequest } = useAiUsage();
   const [roadmapData, setRoadmapData] = useState<RoadmapData | null>(null); // New state for structured data
+  const [isSavingRoadmap, setIsSavingRoadmap] = useState(false); // New state for saving roadmap
 
   useEffect(() => {
     if (likedPosts.length === 0) {
@@ -154,13 +157,66 @@ const RoadmapPage: React.FC<RoadmapPageProps> = ({
 
     } catch (error) {
       console.error("Error fetching roadmap:", error);
-      showError(`Failed to get roadmap: ${error instanceof Error ? error.message : String(error)}`);
       setRoadmapData(null);
+      showError(`Failed to get roadmap: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       dismissToast(toastId);
       setIsLoadingRoadmap(false);
     }
   }, [selectedPostId, likedPosts, setIsLoadingRoadmap, incrementRequest, recordRequest]);
+
+  const handleSaveRoadmap = useCallback(async () => {
+    if (!roadmapData || !selectedPostId) {
+      showError("No roadmap to save or no post selected.");
+      return;
+    }
+
+    setIsSavingRoadmap(true);
+    const toastId = showLoading("Saving roadmap...");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showError("You must be logged in to save roadmaps.");
+        setIsSavingRoadmap(false);
+        dismissToast(toastId);
+        return;
+      }
+
+      // Find the saved_posts entry for the selectedPostId (Reddit ID)
+      const { data: savedPostData, error: savedPostError } = await supabase
+        .from('saved_posts')
+        .select('id')
+        .eq('post_id', selectedPostId)
+        .single();
+
+      if (savedPostError || !savedPostData) {
+        throw new Error(`Could not find saved post for ID ${selectedPostId}. Please save the post first.`);
+      }
+
+      const { error } = await supabase
+        .from('saved_roadmaps')
+        .upsert({
+          user_id: user.id,
+          saved_post_id: savedPostData.id, // Link to the UUID of the saved_post
+          roadmap_data: roadmapData,
+        }, { onConflict: 'saved_post_id' }); // Upsert based on saved_post_id
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      showSuccess("Roadmap saved successfully!");
+      navigate("/saved-roadmaps"); // Navigate to the new saved roadmaps page
+
+    } catch (error) {
+      console.error("Error saving roadmap:", error);
+      showError(`Failed to save roadmap: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      dismissToast(toastId);
+      setIsSavingRoadmap(false);
+    }
+  }, [roadmapData, selectedPostId, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 p-4">
@@ -195,6 +251,10 @@ const RoadmapPage: React.FC<RoadmapPageProps> = ({
               {isLoadingRoadmap ? "Generating..." : "Proceed"}
             </Button>
           </div>
+
+          {isLoadingRoadmap && (
+            <LoadingGame />
+          )}
 
           {roadmapData && (
             <div className="mt-8 p-8 bg-white rounded-2xl shadow-sm border border-gray-200 
@@ -327,6 +387,25 @@ const RoadmapPage: React.FC<RoadmapPageProps> = ({
                   ))}
                 </div>
               </section>
+              <div className="flex justify-center mt-8">
+                <Button
+                  onClick={handleSaveRoadmap}
+                  disabled={isSavingRoadmap}
+                  className="w-full sm:w-auto px-8 py-2 text-lg"
+                >
+                  {isSavingRoadmap ? (
+                    <>
+                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                      Saving Roadmap...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-5 w-5 mr-2" />
+                      Save Roadmap
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

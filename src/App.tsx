@@ -13,6 +13,8 @@ import ScrollToTopButton from "./components/ScrollToTopButton";
 import { showLoading, showSuccess, showError, dismissToast } from "./utils/toast"; // Changed to relative path
 import { AiUsageProvider } from "./context/AiUsageContext"; // Import the new provider
 import SavedPostsPage from "./pages/SavedPostsPage"; // Import the new SavedPostsPage
+import SavedRoadmapsPage from "./pages/SavedRoadmapsPage"; // Import the new SavedRoadmapsPage
+import SavedCommentsPage from "./pages/SavedCommentsPage"; // Import the new SavedCommentsPage
 
 // Define the Post interface here as it's now used in App.tsx
 interface Post {
@@ -191,6 +193,8 @@ const App = () => {
                     }
                   />
                   <Route path="/saved-posts" element={<SavedPostsPage />} /> {/* New route for SavedPostsPage */}
+                  <Route path="/saved-roadmaps" element={<SavedRoadmapsPage />} /> {/* New route for SavedRoadmapsPage */}
+                  <Route path="/saved-comments" element={<SavedCommentsPage />} /> {/* New route for SavedCommentsPage */}
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

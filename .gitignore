@@ -14,7 +14,6 @@ dist-ssr
 .env
 .env.local
 .env.*
-.env.development
 AI_RULES.md
 AI_RULES
 

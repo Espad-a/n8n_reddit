@@ -13,6 +13,8 @@ const MobileNav: React.FC = () => {
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Saved Posts", path: "/saved-posts" }, // New link
+    { name: "Saved Roadmaps", path: "/saved-roadmaps" }, // New link
+    { name: "Saved Comments", path: "/saved-comments" }, // New link
     { name: "Roadmap", path: "/roadmap" },
   ];
 

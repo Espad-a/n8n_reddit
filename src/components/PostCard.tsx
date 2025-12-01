@@ -4,14 +4,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, Heart, MessageSquare, RefreshCw, Link as LinkIcon, ArrowUpRight, Lightbulb } from "lucide-react";
+import { ChevronDown, ChevronUp, Heart, MessageSquare, RefreshCw, Link as LinkIcon, ArrowUpRight, Lightbulb, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { showLoading, showSuccess, showError, dismissToast } from "@/utils/toast";
-import { useAiUsage } from "@/context/AiUsageContext"; // Import the AI usage hook
+import { useAiUsage } from "@/context/AiUsageContext";
+import { supabase } from "@/lib/supabase";
 
-// Define interfaces for the new comment data structure
 interface Comment {
   depth: number;
   author: string;
@@ -44,7 +44,7 @@ interface CommentsResponse {
   combinedSummary: CombinedSummary;
   individualThreads: IndividualThread[];
   displayText: string;
-  commentSummaries?: Record<string, string | null>; // Added to store AI summaries for comments
+  commentSummaries?: Record<string, string | null>;
 }
 
 interface PostCardProps {
@@ -58,46 +58,40 @@ interface PostCardProps {
   };
   isLiked: boolean;
   onLikeToggle: (postId: string) => void;
-  onFetchComments: (postId: string, subreddit: string) => Promise<CommentsResponse | null>; // Global fetch function
-  allFetchedComments: Record<string, CommentsResponse | null>; // Global comments cache
-  updateCommentSummaryInCache: (postId: string, commentId: string, summary: string | null) => void; // New prop
+  onFetchComments: (postId: string, subreddit: string) => Promise<CommentsResponse | null>;
+  allFetchedComments: Record<string, CommentsResponse | null>;
+  updateCommentSummaryInCache: (postId: string, commentId: string, summary: string | null) => void;
   className?: string;
   style?: React.CSSProperties;
 }
 
 const MAX_COMMENTS_FOR_INLINE_DISPLAY = 50;
+const LONG_COMMENT_THRESHOLD = 250;
 
 const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetchComments, allFetchedComments, updateCommentSummaryInCache, className, style }) => {
   const navigate = useNavigate();
   const { recordRequest, incrementRequest } = useAiUsage();
   const [isPostContentOpen, setIsPostContentOpen] = useState(false);
-  const [showComments, setShowComments] = useState(false); // Initial state is false
+  const [showComments, setShowComments] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [isSummarizingComment, setIsSummarizingComment] = useState<Record<string, boolean>>({});
   const [commentSummaries, setCommentSummaries] = useState<Record<string, string | null>>(() => {
-    // Initialize from cached comments data if available
     return allFetchedComments[post.id]?.commentSummaries || {};
   });
   const [showCommentSummary, setShowCommentSummary] = useState<Record<string, boolean>>({});
-  const [isAnimatingLike, setIsAnimatingLike] = useState(false); // New state for like animation
+  const [isAnimatingLike, setIsAnimatingLike] = useState(false);
+  const [isSavingComment, setIsSavingComment] = useState<Record<string, boolean>>({});
+  const [isCommentBodyOpen, setIsCommentBodyOpen] = useState<Record<string, boolean>>({});
   
-  // Derive commentsData from the global cache
   const commentsData = allFetchedComments[post.id];
   const totalComments = commentsData?.combinedSummary.totalComments || 0;
   const commentsTooLarge = totalComments > MAX_COMMENTS_FOR_INLINE_DISPLAY;
 
-  // Log current state for debugging
-  useEffect(() => {
-    console.log(`[PostCard ${post.id}] Render: showComments=${showComments}, isLoadingComments=${isLoadingComments}, commentsData=${!!commentsData}, totalComments=${totalComments}, commentsTooLarge=${commentsTooLarge}`);
-  }, [showComments, isLoadingComments, commentsData, totalComments, commentsTooLarge, post.id]);
-
-  // Effect to re-initialize commentSummaries when commentsData changes (e.g., after a fresh fetch)
   useEffect(() => {
     if (commentsData) {
       setCommentSummaries(commentsData.commentSummaries || {});
     }
   }, [commentsData]);
-
 
   const decodeHtml = (html: string) => {
     const textarea = document.createElement('textarea');
@@ -106,53 +100,42 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
   };
 
   const fetchAndSetComments = async () => {
-    console.log(`[PostCard ${post.id}] fetchAndSetComments called`);
     setIsLoadingComments(true);
-    setShowComments(true); // Assume success and show comments
+    setShowComments(true);
     try {
-      const fetchedComments = await onFetchComments(post.id, post.subreddit); // This updates the global state
-      if (!fetchedComments) { // If global fetch function returned null (meaning error)
-        console.log(`[PostCard ${post.id}] fetch failed, hiding comments`);
-        setShowComments(false); // Hide comments if fetch failed
-      } else {
-        console.log(`[PostCard ${post.id}] fetch successful, comments count: ${fetchedComments.combinedSummary.totalComments}`);
+      const fetchedComments = await onFetchComments(post.id, post.subreddit);
+      if (!fetchedComments) {
+        setShowComments(false);
       }
     } catch (error) {
       console.error(`[PostCard ${post.id}] Error fetching comments:`, error);
-      setShowComments(false); // Ensure comments are hidden on local error too
+      setShowComments(false);
     } finally {
       setIsLoadingComments(false);
-      console.log(`[PostCard ${post.id}] fetchAndSetComments finished`);
     }
   };
 
   const handleShowCommentsClick = async () => {
-    console.log(`[PostCard ${post.id}] handleShowCommentsClick called. Current showComments=${showComments}`);
     if (commentsData && commentsData.combinedSummary.totalComments > MAX_COMMENTS_FOR_INLINE_DISPLAY) {
-      console.log(`[PostCard ${post.id}] Comments too large, navigating.`);
       navigate(`/posts/${post.subreddit}/${post.id}/comments`);
     } else if (!commentsData) {
-      console.log(`[PostCard ${post.id}] No comments data, fetching.`);
       await fetchAndSetComments();
     } else {
-      console.log(`[PostCard ${post.id}] Toggling showComments from ${showComments} to ${!showComments}.`);
       setShowComments(prev => !prev);
     }
   };
 
   const handleReloadComments = async () => {
-    console.log(`[PostCard ${post.id}] handleReloadComments called.`);
-    await fetchAndSetComments(); // This will refetch and update the global state
+    await fetchAndSetComments();
   };
 
   const handleSummarizeComment = useCallback(async (commentId: string, commentBody: string) => {
-    // If summary already exists, just toggle its visibility
     if (commentSummaries[commentId]) {
       setShowCommentSummary(prev => ({ ...prev, [commentId]: !prev[commentId] }));
       return;
     }
 
-    if (!recordRequest()) { // Check AI usage limit
+    if (!recordRequest()) {
       return;
     }
 
@@ -160,7 +143,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
     const toastId = showLoading("Summarizing comment...");
 
     try {
-      // Use the single VITE_REDDIT_COMMENT_SUMMARY_WEBHOOK_URL, Vite will load the correct one based on mode
       const webhookUrl = import.meta.env.VITE_REDDIT_COMMENT_SUMMARY_WEBHOOK_URL;
 
       if (!webhookUrl) {
@@ -180,7 +162,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
         throw new Error(`Summary webhook failed with status ${response.status}: ${errorData}`);
       }
 
-      // Only increment if the request was successful
       incrementRequest();
 
       const rawData = await response.json();
@@ -188,11 +169,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
       
       setCommentSummaries(prev => {
         const newSummaries = { ...prev, [commentId]: summary };
-        updateCommentSummaryInCache(post.id, commentId, summary); // Update global cache
+        updateCommentSummaryInCache(post.id, commentId, summary);
         return newSummaries;
       });
-      setShowCommentSummary(prev => ({ ...prev, [commentId]: true })); // Show summary after fetching
-      showSuccess("Comment summarized!"); // Keep a small toast for feedback
+      setShowCommentSummary(prev => ({ ...prev, [commentId]: true }));
+      showSuccess("Comment summarized!");
 
     } catch (error) {
       console.error("Error summarizing comment:", error);
@@ -201,13 +182,59 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
       dismissToast(toastId);
       setIsSummarizingComment(prev => ({ ...prev, [commentId]: false }));
     }
-  }, [commentSummaries, recordRequest, incrementRequest, post.id, updateCommentSummaryInCache]); // Depend on commentSummaries to check if summary exists
+  }, [commentSummaries, recordRequest, incrementRequest, post.id, updateCommentSummaryInCache]);
 
   const handleLikeButtonClick = useCallback(() => {
     onLikeToggle(post.id);
     setIsAnimatingLike(true);
-    setTimeout(() => setIsAnimatingLike(false), 300); // Animation duration
+    setTimeout(() => setIsAnimatingLike(false), 300);
   }, [onLikeToggle, post.id]);
+
+  const handleSaveComment = useCallback(async (comment: Comment) => {
+    setIsSavingComment(prev => ({ ...prev, [comment.id]: true }));
+    const toastId = showLoading("Saving comment...");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showError("You must be logged in to save comments.");
+        setIsSavingComment(prev => ({ ...prev, [comment.id]: false }));
+        dismissToast(toastId);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('saved_comments')
+        .upsert({
+          user_id: user.id,
+          post_id: post.id,
+          comment_id: comment.id,
+          subreddit: post.subreddit,
+          comment_body: comment.body,
+          comment_author: comment.author,
+          comment_score: comment.score,
+          comment_created: comment.created,
+          comment_permalink: comment.permalink,
+          ai_summary: commentSummaries[comment.id] || null,
+        }, { onConflict: 'comment_id' });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      showSuccess("Comment saved successfully!");
+    } catch (error) {
+      console.error("Error saving comment:", error);
+      showError(`Failed to save comment: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      dismissToast(toastId);
+      setIsSavingComment(prev => ({ ...prev, [comment.id]: false }));
+    }
+  }, [post, commentSummaries]);
+
+  const toggleCommentBody = useCallback((commentId: string) => {
+    setIsCommentBodyOpen(prev => ({ ...prev, [commentId]: !prev[commentId] }));
+  }, []);
 
   return (
     <Card className={cn("w-full max-w-2xl mb-6 shadow-md", className)} style={style}>
@@ -228,11 +255,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
             className={cn(
               "ml-4 transition-all duration-200 ease-out",
               isLiked ? "text-red-500 hover:text-red-600" : "text-gray-400 hover:text-red-500",
-              isAnimatingLike && "scale-125" // Apply scale animation
+              isAnimatingLike && "scale-125"
             )}
             aria-label={isLiked ? "Unlike post" : "Like post"}
           >
-            <Heart key={isLiked ? "liked" : "unliked"} fill={isLiked ? "currentColor" : "none"} className="h-7 w-7" /> {/* Increased size */}
+            <Heart key={isLiked ? "liked" : "unliked"} fill={isLiked ? "currentColor" : "none"} className="h-7 w-7" />
           </Button>
         </div>
       </CardHeader>
@@ -350,27 +377,26 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
 
                 {commentsData.individualThreads.map((thread, threadIndex) => (
                   <div key={threadIndex} className="comment-thread mb-6">
-                    {thread.comments.map(comment => (
-                      <div
-                        key={comment.id}
-                        className="comment group"
-                        style={{ marginLeft: comment.depth * 24 + 'px' }} // Standardized indentation
-                        data-author-initial={comment.author.charAt(0).toUpperCase()}
-                      >
-                        <div className="comment-header flex items-center gap-2 text-sm mb-2">
-                          <div className="flex items-center gap-2 flex-1">
+                    {thread.comments.map(comment => {
+                      const isLongComment = comment.body.length > LONG_COMMENT_THRESHOLD;
+                      const isBodyOpen = isCommentBodyOpen[comment.id] || false;
+                      return (
+                        <div
+                          key={comment.id}
+                          className="comment group"
+                          style={{ marginLeft: comment.depth * 24 + 'px' }}
+                        >
+                          <div className="comment-header flex items-center gap-2 text-sm mb-1">
                             <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
                               {comment.author.charAt(0).toUpperCase()}
                             </div>
                             <span className="font-semibold text-gray-900 dark:text-gray-100">
                               {comment.author}
                             </span>
-                            <span className="text-gray-500">•</span>
+                            <span className="text-gray-500 mx-1">•</span>
                             <span className="text-orange-500 font-medium">▲ {comment.score}</span>
-                            <span className="text-gray-500">•</span>
-                            <span className="text-gray-500 text-xs">{comment.created}</span>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 mb-2">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -385,37 +411,61 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
                                 <Lightbulb className="h-4 w-4" />
                               )}
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleSaveComment(comment)}
+                              disabled={isSavingComment[comment.id]}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-green-500"
+                              title="Save Comment"
+                            >
+                              {isSavingComment[comment.id] ? (
+                                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-gray-100"></span>
+                              ) : (
+                                <Bookmark className="h-4 w-4" />
+                              )}
+                            </Button>
                             <a
                               href={comment.permalink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 p-2 rounded-md"
                               title="Open on Reddit"
                             >
                               <LinkIcon className="h-4 w-4" />
                             </a>
                           </div>
-                        </div>
 
-                        <div className="comment-body text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-                          <p dangerouslySetInnerHTML={{ __html: decodeHtml(comment.body) }}></p>
-                        </div>
-
-                        {commentSummaries[comment.id] && showCommentSummary[comment.id] && (
-                          <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-950 rounded-md border border-yellow-200 dark:border-yellow-800 animate-in fade-in duration-300">
-                            <h5 className="font-medium text-yellow-700 dark:text-yellow-300 text-xs mb-1">AI Summary:</h5>
-                            <p className="text-yellow-600 dark:text-yellow-400 text-sm">{commentSummaries[comment.id]}</p>
+                          <div className="comment-body text-gray-700 dark:text-gray-300 text-sm leading-relaxed prose prose-sm dark:prose-invert">
+                            {isLongComment ? (
+                              <Collapsible open={isBodyOpen} onOpenChange={() => toggleCommentBody(comment.id)}>
+                                <CollapsibleContent className={cn("overflow-hidden transition-all duration-300 ease-in-out", !isBodyOpen && "max-h-[4.5em]")}>
+                                  <p dangerouslySetInnerHTML={{ __html: decodeHtml(comment.body) }}></p>
+                                </CollapsibleContent>
+                                <CollapsibleTrigger asChild>
+                                  <Button variant="link" size="sm" className="h-auto p-0 text-blue-500 dark:text-blue-400">
+                                    {isBodyOpen ? "Show less" : "Read more"}
+                                  </Button>
+                                </CollapsibleTrigger>
+                              </Collapsible>
+                            ) : (
+                              <p dangerouslySetInnerHTML={{ __html: decodeHtml(comment.body) }}></p>
+                            )}
                           </div>
-                        )}
 
-                        {comment.depth > 0 && (
-                          <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                            <ArrowUpRight className="h-3 w-3" />
-                            Replying to parent comment
+                          {commentSummaries[comment.id] && showCommentSummary[comment.id] && (
+                            <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-950 rounded-md border border-yellow-200 dark:border-yellow-800 animate-in fade-in duration-300">
+                              <h5 className="font-medium text-yellow-700 dark:text-yellow-300 text-xs mb-1">AI Summary:</h5>
+                              <p className="text-yellow-600 dark:text-yellow-400 text-sm">{commentSummaries[comment.id]}</p>
+                            </div>
+                          )}
+
+                          <div className="comment-footer">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{comment.created}</span>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
 
                     {threadIndex < commentsData.individualThreads.length - 1 && (
                       <div className="border-t border-gray-200 dark:border-gray-700 my-4"></div>
