@@ -201,59 +201,63 @@
 
   .comment {
     position: relative;
-    border-left: 2px solid transparent; /* Start with transparent, will be overridden by depth */
-    padding-left: 16px;
-    margin-left: 0 !important; /* Override inline margin for base indentation */
+    border-left: 2px solid transparent;
     transition: all 0.2s ease;
     border-radius: 6px;
-    padding: 12px;
+    padding: 12px; /* Base padding for all sides */
     margin-bottom: 8px;
   }
 
   /* Depth-based styling for comments */
   /* Level 0 (top-level) */
-  .comment[style*="margin-left: 0px"] {
+  .comment.pl-0 { /* Using pl-0 for base, will be overridden by dynamic classes */
     @apply bg-card border border-border shadow-sm;
   }
-  .dark .comment[style*="margin-left: 0px"] {
+  .dark .comment.pl-0 {
     @apply bg-card border border-border;
   }
 
   /* Level 1 */
-  .comment[style*="margin-left: 24px"] {
+  .comment.pl-4 { /* Mobile pl-4 */
     @apply bg-gray-50 border border-gray-200;
   }
-  .dark .comment[style*="margin-left: 24px"] {
+  .dark .comment.pl-4 {
     @apply bg-gray-800 border border-gray-700;
   }
 
   /* Level 2 */
-  .comment[style*="margin-left: 48px"] {
+  .comment.pl-8 { /* Mobile pl-8 */
     @apply bg-gray-100 border border-gray-300;
   }
-  .dark .comment[style*="margin-left: 48px"] {
+  .dark .comment.pl-8 {
     @apply bg-gray-850 border border-gray-750; /* Custom dark shade */
   }
 
   /* Level 3 */
-  .comment[style*="margin-left: 72px"] {
+  .comment.pl-12 { /* Mobile pl-12 */
     @apply bg-gray-200 border border-gray-400;
   }
-  .dark .comment[style*="margin-left: 72px"] {
+  .dark .comment.pl-12 {
     @apply bg-gray-900 border border-gray-800;
   }
 
-  /* Level 4 and deeper */
-  .comment[style*="margin-left: 96px"],
-  .comment[style*="margin-left: 120px"],
-  .comment[style*="margin-left: 144px"], /* Added for even deeper nesting */
-  .comment[style*="margin-left: 168px"] { /* Added for even deeper nesting */
+  /* Level 4 and deeper (mobile) */
+  .comment.pl-16,
+  .comment.pl-20,
+  .comment.pl-24,
+  .comment.pl-28,
+  .comment.pl-32,
+  .comment.pl-36,
+  .comment.pl-40 {
     @apply bg-gray-200 border border-gray-400; /* Same as level 3 for simplicity */
   }
-  .dark .comment[style*="margin-left: 96px"],
-  .dark .comment[style*="margin-left: 120px"],
-  .dark .comment[style*="margin-left: 144px"],
-  .dark .comment[style*="margin-left: 168px"] {
+  .dark .comment.pl-16,
+  .dark .comment.pl-20,
+  .dark .comment.pl-24,
+  .dark .comment.pl-28,
+  .dark .comment.pl-32,
+  .dark .comment.pl-36,
+  .dark .comment.pl-40 {
     @apply bg-gray-950 border border-gray-900; /* Even darker for deepest levels */
   }
 
@@ -269,30 +273,24 @@
     @apply flex justify-end text-xs text-gray-500 dark:text-gray-400 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700;
   }
 
-  /* Mobile adjustments */
+  /* Custom class for fading out truncated content */
+  .comment-fade-bottom {
+    position: relative; /* Ensure pseudo-element positions correctly */
+  }
+
+  .comment-fade-bottom::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3em; /* Height of the fade effect */
+    background: linear-gradient(to top, var(--background) 0%, transparent 100%);
+    pointer-events: none; /* Allow clicking through the fade */
+  }
+
+  /* Mobile adjustments for icons */
   @media (max-width: 768px) {
-    .comment {
-      margin-left: 0 !important; /* Remove indentation on small screens */
-      padding-left: 12px;
-    }
-    
-    .comment-header {
-      /* flex-direction: column; REMOVED to keep header elements in a row on mobile */
-      align-items: flex-start;
-      gap: 4px;
-    }
-
-    /* Adjust comment depth styling for smaller screens */
-    .comment[style*="margin-left: 24px"],
-    .comment[style*="margin-left: 48px"],
-    .comment[style*="margin-left: 72px"],
-    .comment[style*="margin-left: 96px"],
-    .comment[style*="margin-left: 120px"],
-    .comment[style*="margin-left: 144px"],
-    .comment[style*="margin-left: 168px"] {
-      margin-left: 12px !important; /* Smaller indentation for nested comments */
-    }
-
     .comment .group-hover\\:opacity-100 {
       opacity: 1; /* Always show icons on mobile for easier interaction */
     }

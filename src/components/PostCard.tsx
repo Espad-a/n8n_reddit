@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { showLoading, showSuccess, showError, dismissToast } from "@/utils/toast";
 import { useAiUsage } from "@/context/AiUsageContext";
 import { supabase } from "@/lib/supabase";
+import { getCommentIndentationClass } from "@/utils/comment-utils"; // Import the new utility
 
 interface Comment {
   depth: number;
@@ -383,8 +384,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
                       return (
                         <div
                           key={comment.id}
-                          className="comment group"
-                          style={{ marginLeft: comment.depth * 24 + 'px' }}
+                          className={cn("comment group", getCommentIndentationClass(comment.depth))}
                         >
                           <div className="comment-header flex items-center gap-2 text-sm mb-1">
                             <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
@@ -439,7 +439,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, isLiked, onLikeToggle, onFetc
                           <div className="comment-body text-gray-700 dark:text-gray-300 text-sm leading-relaxed prose prose-sm dark:prose-invert">
                             {isLongComment ? (
                               <Collapsible open={isBodyOpen} onOpenChange={() => toggleCommentBody(comment.id)}>
-                                <CollapsibleContent className={cn("overflow-hidden transition-all duration-300 ease-in-out", !isBodyOpen && "max-h-[4.5em]")}>
+                                <CollapsibleContent className={cn("overflow-hidden transition-all duration-300 ease-in-out", !isBodyOpen && "max-h-[4.5em] comment-fade-bottom")}>
                                   <p dangerouslySetInnerHTML={{ __html: decodeHtml(comment.body) }}></p>
                                 </CollapsibleContent>
                                 <CollapsibleTrigger asChild>

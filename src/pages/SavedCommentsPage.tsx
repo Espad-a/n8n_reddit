@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { getCommentIndentationClass } from "@/utils/comment-utils"; // Import the new utility
 
 interface SavedComment {
   id: string;
@@ -179,10 +180,10 @@ const SavedCommentsPage: React.FC = () => {
                     </Button>
                   </div>
 
-                  <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3 prose prose-sm dark:prose-invert">
+                  <div className={cn("text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-3 prose prose-sm dark:prose-invert", getCommentIndentationClass(0))}> {/* Apply base indentation */}
                     {isLongComment ? (
                       <Collapsible open={isBodyOpen} onOpenChange={() => toggleCommentBody(comment.id)}>
-                        <CollapsibleContent className={cn("overflow-hidden transition-all duration-300 ease-in-out", !isBodyOpen && "max-h-[4.5em]")}>
+                        <CollapsibleContent className={cn("overflow-hidden transition-all duration-300 ease-in-out", !isBodyOpen && "max-h-[4.5em] comment-fade-bottom")}>
                           <p dangerouslySetInnerHTML={{ __html: decodeHtml(comment.comment_body) }}></p>
                         </CollapsibleContent>
                         <CollapsibleTrigger asChild>
